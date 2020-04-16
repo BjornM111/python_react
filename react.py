@@ -82,7 +82,7 @@ class Renderer(object):
 
         self._move_instance(old, new)
         if props:
-            self._setprops(new, props)
+            self._setprops(new, props, old)
 
         if layout:
             self._render(layout, old.props.get('layout'))
