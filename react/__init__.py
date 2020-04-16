@@ -93,15 +93,17 @@ class Renderer(object):
                 status = self._update(new_widget, old_widget)
                 if status == Status.NOTHING:
                     continue
-                if status == Status.UPDATED:
+                if status == Status.NEW:
+                    self._insert(new, i, new_widget)
+                    self += 1
                     continue
                 if status == Status.REPLACED:
-                    self._pop(old, i)
-                    self._insert(old, i, new_widget)
+                    self._pop(new, i)
+                    self._insert(new, i, new_widget)
                     i += 1
                     continue
                 if status == Status.REMOVED:
-                    self._pop(old, i)
+                    self._pop(new, i)
                     continue
                 if status == Status.UPDATED:
                     i += 1
