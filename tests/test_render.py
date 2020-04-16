@@ -36,7 +36,8 @@ def test_create(renderer):
         )
     )
     assert renderer.steps == [
-        ("add", Label, {"text": "hello"}),
+        ("add", Label),
+        ("update", {"text": "hello"}),
     ]
     assert renderer.item.text == "hello"
 
@@ -56,7 +57,8 @@ def test_change_prop(renderer):
         )
     )
     assert renderer.steps == [
-        ("add", Label, {"text": "hello"}),
+        ("add", Label),
+        ("update", {"text": "hello"}),
         ("update", {"text": "hello2"}),
     ]
     assert renderer.item.text == "hello2"
@@ -74,7 +76,8 @@ def test_remove(renderer):
         None
     )
     assert renderer.steps == [
-        ("add", Label, {"text": "hello"}),
+        ("add", Label),
+        ("update", {"text": "hello"}),
         ("remove", Label),
     ]
     assert renderer.item is None
@@ -94,9 +97,11 @@ def test_change_class(renderer):
         )
     )
     assert renderer.steps == [
-        ("add", Label, {"text": "hello"}),
+        ("add", Label),
+        ("update", {"text": "hello"}),
         ("remove", Label),
-        ("add", Text, {"text": "hello2"}),
+        ("add", Text),
+        ("update", {"text": "hello2"}),
     ]
     assert renderer.item.text == "hello2"
     assert isinstance(renderer.item, Text)
@@ -123,10 +128,14 @@ def test_layout(renderer):
     )
 
     assert renderer.steps == [
-        ("add", Widget, {}),
-        ("add", VLayout, {}),
-        ("add", Label, {"text": "hello"}),
-        ("add", Label, {"text": "hello2"}),
+        ("add", Widget),
+        ("update", {}),
+        ("add", VLayout),
+        ("update", {}),
+        ("add", Label),
+        ("update", {"text": "hello"}),
+        ("add", Label),
+        ("update", {"text": "hello2"}),
     ]
     assert renderer.item.layout.widgets[0].text == "hello"
     assert renderer.item.layout.widgets[1].text == "hello2"
@@ -152,7 +161,7 @@ def test_layout(renderer):
         )
     )
 
-    assert renderer.steps[4:] == [
+    assert renderer.steps[8:] == [
         ("update", {"text": "hello2"}),
         ("update", {"text": "hello3"}),
     ]
@@ -160,3 +169,23 @@ def test_layout(renderer):
     assert renderer.item.layout.widgets[1].text == "hello3"
     assert isinstance(renderer.item.layout, VLayout)
     assert renderer.item.layout.widgets == widgets
+
+    renderer.render(
+        Element(
+            Widget,
+            layout=Element(
+                VLayout,
+                widgets=[
+                    None,
+                    Element(
+                        Label,
+                        text="hello3"
+                    ),
+                ]
+            )
+        )
+    )
+    assert renderer.steps[10:] == [
+        ("remove", Label),
+    ]
+    assert renderer.item.layout.widgets == [widgets[1]]

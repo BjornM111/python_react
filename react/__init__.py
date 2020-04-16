@@ -1,5 +1,14 @@
 from typing import Optional
 from itertools import zip_longest
+import enum
+
+
+class Status(enum.Enum):
+    REPLACED = 0
+    UPDATED = 1
+    NEW = 2
+    REMOVED = 3
+    NOTHING = 4
 
 
 def split_props(props):
@@ -22,20 +31,22 @@ class Renderer(object):
 
     def render(self, root):
         raise NotImplementedError('this should be overridden')
-    
+
     def _update(self, new, old):
         if not new:
-            if old:
-                self.remove(old)
-            return
-
-        if old and new.Class != old.Class:
+            if not old:
+                return Status.NOTHING
             self.remove(old)
-            old = None
+            return Status.REMOVED
 
         if not old:
-            item = self.add(new)
-            return
+            self.add(new)
+            return Status.NEW
+
+        if new.Class != old.Class:
+            self.remove(old)
+            self.add(new)
+            return Status.REPLACED
 
         props = {}
 
@@ -48,23 +59,17 @@ class Renderer(object):
                 props[key] = None
 
         self.update(props, new, old)
-    
+        return Status.UPDATED
+
     def add(self, element):
         props, layout, widgets = split_props(element.props)
 
-        item = element.Class()
-        for key, value in props.items():
-            setattr(item, key, value)
-
-        self.steps.append(
-            ("add", element.Class, props),
-        )
+        self._create_instance(element)
+        self._setprops(element, props)
 
         if layout:
             self.add(layout)
-            item.layout = layout.item
-
-        element.item = item
+            self._setlayout(element, layout)
 
         if widgets:
             for i, widget in enumerate(widgets):
@@ -74,44 +79,39 @@ class Renderer(object):
     def update(self, props, new, old):
         props, layout, widgets = split_props(props)
 
+        self._move_instance(old, new)
         if props:
-            for key, value in props.items():
-                setattr(old.item, key, value)
-
-            self.steps.append(
-                ("update", props),
-            )
+            self._setprops(new, props)
 
         if layout:
             self._update(layout, old.props.get('layout'))
-            old.item.layout = layout.item
+            self._setlayout(new, layout)
 
         if widgets:
             i = 0
             for new_widget, old_widget in zip_longest(widgets, old.props.get('widgets')):
-                if not old_widget and not new_widget:
+                status = self._update(new_widget, old_widget)
+                if status == Status.NOTHING:
                     continue
-                self._update(new_widget, old_widget)
-                if not old_widget:
+                if status == Status.UPDATED:
+                    continue
+                if status == Status.REPLACED:
                     self._pop(old, i)
                     self._insert(old, i, new_widget)
                     i += 1
                     continue
-                if not new_widget:
+                if status == Status.REMOVED:
                     self._pop(old, i)
                     continue
-                if new_widget.item is old_widget.item:
+                if status == Status.UPDATED:
                     i += 1
                     continue
-
-        new.item = old.item
+                raise RuntimeError("shit should not happen")
 
     def remove(self, element):
         props, layout, widgets = split_props(element.props)
 
-        self.steps.append(
-            ("remove", element.Class),
-        )
+        self._remove(element)
 
         if layout:
             self.remove(layout)
