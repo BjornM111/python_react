@@ -1,6 +1,6 @@
-from typing import Optional
 from itertools import zip_longest
 import enum
+from types import FunctionType
 
 
 class Status(enum.Enum):
@@ -32,7 +32,7 @@ class Renderer(object):
     def render(self, root):
         raise NotImplementedError('this should be overridden')
 
-    def _update(self, new, old):
+    def _render(self, new, old):
         if not new:
             if not old:
                 return Status.NOTHING
@@ -48,17 +48,7 @@ class Renderer(object):
             self.add(new)
             return Status.REPLACED
 
-        props = {}
-
-        for key, value in new.props.items():
-            if old.props.get(key) != value:
-                props[key] = value
-
-        for key in old.props:
-            if key not in new.props:
-                props[key] = None
-
-        self.update(props, new, old)
+        self.update(new, old)
         return Status.UPDATED
 
     def add(self, element):
@@ -76,7 +66,18 @@ class Renderer(object):
                 self.add(widget)
                 self._insert(element, i, widget)
 
-    def update(self, props, new, old):
+    def update(self, new, old):
+
+        props = {}
+
+        for key, value in new.props.items():
+            if old.props.get(key) != value:
+                props[key] = value
+
+        for key in old.props:
+            if key not in new.props:
+                props[key] = None
+
         props, layout, widgets = split_props(props)
 
         self._move_instance(old, new)
@@ -84,13 +85,13 @@ class Renderer(object):
             self._setprops(new, props)
 
         if layout:
-            self._update(layout, old.props.get('layout'))
+            self._render(layout, old.props.get('layout'))
             self._setlayout(new, layout)
 
         if widgets:
             i = 0
             for new_widget, old_widget in zip_longest(widgets, old.props.get('widgets')):
-                status = self._update(new_widget, old_widget)
+                status = self._render(new_widget, old_widget)
                 if status == Status.NOTHING:
                     continue
                 if status == Status.NEW:

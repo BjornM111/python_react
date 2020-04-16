@@ -9,7 +9,7 @@ class TestRenderer(Renderer):
         self.steps = []
 
     def render(self, root):
-        self._update(
+        self._render(
             root,
             self.root,
         )
