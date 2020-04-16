@@ -30,7 +30,7 @@ class QtRenderer(Renderer):
 
     def _setprops(self, element, props, old=None):
         for key, value in props.items():
-            if isinstance(getattr(element.item, key), SignalInstance):
+            if  key != "visible" and isinstance(getattr(element.item, key), SignalInstance):
                 signal = getattr(element.item, key)
                 if old and key in old.props:
                     signal.disconnect(old.props[key])
