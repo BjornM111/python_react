@@ -62,9 +62,13 @@ class Renderer(object):
             self._setlayout(element, layout)
 
         if widgets:
-            for i, widget in enumerate(widgets):
+            i = 0
+            for widget in widgets:
+                if not widget:
+                    continue
                 self.add(widget)
                 self._insert(element, i, widget)
+                i += 1
 
     def update(self, new, old):
 
@@ -96,7 +100,7 @@ class Renderer(object):
                     continue
                 if status == Status.NEW:
                     self._insert(new, i, new_widget)
-                    self += 1
+                    i += 1
                     continue
                 if status == Status.REPLACED:
                     self._pop(new, i)
