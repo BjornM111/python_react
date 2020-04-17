@@ -9,6 +9,7 @@ class Status(enum.Enum):
     NEW = 2
     REMOVED = 3
     NOTHING = 4
+    SAME = 5
 
 
 def split_props(props):
@@ -22,6 +23,7 @@ class Element(object):
     def __init__(self, Class, **props):
         self.Class = Class
         self.props = props or {}
+        self.result = None
 
 
 class Renderer(object):
@@ -33,6 +35,9 @@ class Renderer(object):
         raise NotImplementedError('this should be overridden')
 
     def _render(self, new, old):
+        if new is old:
+            return Status.SAME
+
         if not new:
             if not old:
                 return Status.NOTHING
@@ -52,13 +57,23 @@ class Renderer(object):
         return Status.UPDATED
 
     def add(self, element):
+
+        if isinstance(element.Class, FunctionType):
+            result = element.Class(**element.props)
+            self._render(result, None)
+            self._move_instance(result, element)
+            element.result = result
+            return
+
         props, layout, widgets = split_props(element.props)
 
         self._create_instance(element)
-        self._setprops(element, props)
+        if props:
+            self._setprops(element, props)
 
         if layout:
             self.add(layout)
+            layout.parentWidget = element
             self._setlayout(element, layout)
 
         if widgets:
@@ -67,6 +82,7 @@ class Renderer(object):
                 if not widget:
                     continue
                 self.add(widget)
+                element.parentLayout = widget
                 self._insert(element, i, widget)
                 i += 1
 
@@ -82,6 +98,16 @@ class Renderer(object):
             if key not in new.props:
                 props[key] = None
 
+        if isinstance(new.Class, FunctionType):
+            if not props:
+                return
+            result = new.Class(**new.props)
+            self._move_instance(old, new)
+            self._render(result, old.result)
+            self._move_instance(result, new)
+            new.result = result
+            return
+
         props, layout, widgets = split_props(props)
 
         self._move_instance(old, new)
@@ -90,30 +116,39 @@ class Renderer(object):
 
         if layout:
             self._render(layout, old.props.get('layout'))
+            layout.parentWidget = new
             self._setlayout(new, layout)
 
         if widgets:
-            i = 0
-            for new_widget, old_widget in zip_longest(widgets, old.props.get('widgets')):
-                status = self._render(new_widget, old_widget)
-                if status == Status.NOTHING:
-                    continue
-                if status == Status.NEW:
-                    self._insert(new, i, new_widget)
-                    i += 1
-                    continue
-                if status == Status.REPLACED:
-                    self._pop(new, i)
-                    self._insert(new, i, new_widget)
-                    i += 1
-                    continue
-                if status == Status.REMOVED:
-                    self._pop(new, i)
-                    continue
-                if status == Status.UPDATED:
-                    i += 1
-                    continue
-                raise RuntimeError("shit should not happen")
+            self.update_widgets(new, widgets, old.props['widgets'])
+
+    def update_widgets(self, element, new, old):
+        i = 0
+        for new_widget, old_widget in zip_longest(new, old):
+            status = self._render(new_widget, old_widget)
+            if status == Status.NOTHING:
+                continue
+            if status == Status.NEW:
+                self._insert(element, i, new_widget)
+                new_widget.parentLayout = element
+                i += 1
+                continue
+            if status == Status.REPLACED:
+                self._pop(new, i)
+                self._insert(element, i, new_widget)
+                new_widget.parentLayout = element
+                i += 1
+                continue
+            if status == Status.REMOVED:
+                self._pop(element, i)
+                continue
+            if status == Status.UPDATED:
+                i += 1
+                continue
+            if status == Status.SAME:
+                i += 1
+                continue
+            raise RuntimeError("shit should not happen")
 
     def remove(self, element):
         props, layout, widgets = split_props(element.props)

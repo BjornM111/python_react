@@ -20,7 +20,7 @@ from wrapper import wrap
 from PySide2 import QtWidgets
 
 from react import Element
-from react_qt import QtRenderer
+from react_qt import QtRenderer, style
 
 wrap('QtWidgets', QtWidgets, Element)
 from wrapper.QtWidgets import (
@@ -57,7 +57,11 @@ def main():
         render()
 
     def reset():
+        global a
+        global b
         global c
+        a = True
+        b = True
         c = True
         render()
 
@@ -69,6 +73,7 @@ def main():
                     widgets=[
                         QPushButton(
                             text=str(a),
+                            styleSheet=style(color="green" if a else None),
                             pressed=a_pressed,
                         ) if c else None,
                         QPushButton(
@@ -81,8 +86,9 @@ def main():
                         ) if c else None,
                         QPushButton(
                             text="reset",
+                            styleSheet=style(font_weight="bold"),
                             pressed=reset,
-                            visible=not c,
+                            visible=not a or not b or not c,
                         ),
                     ]
                 )

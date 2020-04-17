@@ -20,7 +20,7 @@ class QtRenderer(Renderer):
         element.item = element.Class()
 
     def _move_instance(self, from_element, to_element):
-        to_element.item = from_element.item
+        to_element.item = from_element and from_element.item
 
     def _pop(self, element, i):
         element.item.takeAt(i)
@@ -36,7 +36,7 @@ class QtRenderer(Renderer):
                     signal.disconnect(old.props[key])
                 signal.connect(value)
                 continue
-            setter = getattr(element.item, 'set'+key.capitalize())
+            setter = getattr(element.item, 'set'+key[0].upper()+key[1:])
             setter(value)
 
     def _setlayout(self, element, layout):
@@ -44,3 +44,12 @@ class QtRenderer(Renderer):
 
     def _remove(self, element):
         element.item.deleteLater()
+
+
+def style(**kwargs):
+    return "".join(
+        "{}: {};".format(key.replace("_", "-"), value)
+        for key, value
+        in kwargs.items()
+        if value
+    )

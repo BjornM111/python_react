@@ -24,7 +24,7 @@ class TestRenderer(Renderer):
         )
 
     def _move_instance(self, from_element, to_element):
-        to_element.item = from_element.item
+        to_element.item = from_element and from_element.item
 
     def _pop(self, element, i):
         element.item.widgets.pop(i)

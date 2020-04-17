@@ -129,9 +129,7 @@ def test_layout(renderer):
 
     assert renderer.steps == [
         ("add", Widget),
-        ("update", {}),
         ("add", VLayout),
-        ("update", {}),
         ("add", Label),
         ("update", {"text": "hello"}),
         ("add", Label),
@@ -161,7 +159,7 @@ def test_layout(renderer):
         )
     )
 
-    assert renderer.steps[8:] == [
+    assert renderer.steps[6:] == [
         ("update", {"text": "hello2"}),
         ("update", {"text": "hello3"}),
     ]
@@ -185,7 +183,7 @@ def test_layout(renderer):
             )
         )
     )
-    assert renderer.steps[10:] == [
+    assert renderer.steps[8:] == [
         ("remove", Label),
     ]
     assert renderer.item.layout.widgets == [widgets[1]]
