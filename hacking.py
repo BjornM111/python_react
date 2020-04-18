@@ -16,9 +16,9 @@ if __name__ == "__main__":
 """
 import sys
 
-from wrapper import wrap
 from PySide2 import QtWidgets
 
+from wrapper import wrap
 from react import Element
 from react_qt import QtRenderer, style
 
@@ -32,70 +32,43 @@ from wrapper.QtWidgets import (
 )
 
 
-a = True
-b = True
-c = True
+def master(use_state):
+    a, set_a = use_state(True)
+    b, set_b = use_state(True)
+    c, set_c = use_state(True)
+
+    return QDialog(
+        layout=QVBoxLayout(
+            widgets=[
+                QPushButton(
+                    text=str(a),
+                    styleSheet=style(color="green" if a else None),
+                    pressed=lambda: set_a(not a),
+                ) if c else None,
+                QPushButton(
+                    text="remove me",
+                    pressed=lambda: set_b(not b),
+                ) if b and c else None,
+                QPushButton(
+                    text="remove all",
+                    pressed=lambda: set_c(not c),
+                ) if c else None,
+                QPushButton(
+                    text="reset",
+                    styleSheet=style(font_weight="bold"),
+                    pressed=lambda: (set_a(True), set_b(True), set_c(True)),
+                    visible=not a or not b or not c,
+                ),
+            ]
+        )
+    )
 
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
     renderer = QtRenderer()
 
-    def a_pressed():
-        global a
-        a = not a
-        render()
-
-    def b_pressed():
-        global b
-        b = not b
-        render()
-
-    def c_pressed():
-        global c
-        c = not c
-        render()
-
-    def reset():
-        global a
-        global b
-        global c
-        a = True
-        b = True
-        c = True
-        render()
-
-    def render():
-        print("rendering", a, b, c)
-        renderer.render(
-            QDialog(
-                layout=QVBoxLayout(
-                    widgets=[
-                        QPushButton(
-                            text=str(a),
-                            styleSheet=style(color="green" if a else None),
-                            pressed=a_pressed,
-                        ) if c else None,
-                        QPushButton(
-                            text="remove me",
-                            pressed=b_pressed,
-                        ) if b and c else None,
-                        QPushButton(
-                            text="remove all",
-                            pressed=c_pressed,
-                        ) if c else None,
-                        QPushButton(
-                            text="reset",
-                            styleSheet=style(font_weight="bold"),
-                            pressed=reset,
-                            visible=not a or not b or not c,
-                        ),
-                    ]
-                )
-            )
-        )
-
-    render()
+    renderer.render(Element(master))
     app.exec_()
 
 if __name__ == "__main__":
