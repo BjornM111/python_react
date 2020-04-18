@@ -119,5 +119,5 @@ def test_state_layout(renderer):
     renderer.root.props['widgets'][0].state[0][0] = True
     renderer.item.widgets[0].pressed()
     renderer.root.props['widgets'][0].state[0][0] = False
-    assert renderer.item.widgets[0] is None
+    assert not renderer.item.widgets
 

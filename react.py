@@ -30,6 +30,7 @@ class Element(object):
         self.state_index = -1
         self.parent_layout = None
         self.parent_widget = None
+        self.dirty = False
 
     def __repr__(self):
         return "Element({}, {})".format(
@@ -55,6 +56,7 @@ class State(list):
 
     def set_state(self, index, value):
         self[index][0] = value
+        self.element.dirty = True
         self.renderer.state_changed(self.element)
 
 
@@ -67,6 +69,27 @@ class Renderer(object):
     def render(self, root):
         raise NotImplementedError('this should be overridden')
 
+    def _create_instance(self, element):
+        raise NotImplementedError('this should be overridden')
+
+    def _move_instance(self, from_element, to_element):
+        raise NotImplementedError('this should be overridden')
+
+    def _pop(self, element, i):
+        raise NotImplementedError('this should be overridden')
+
+    def _insert(self, parent, i, element):
+        raise NotImplementedError('this should be overridden')
+
+    def _setprops(self, element, props, old=None):
+        raise NotImplementedError('this should be overridden')
+
+    def _setlayout(self, element, layout):
+        raise NotImplementedError('this should be overridden')
+
+    def _remove(self, element):
+        raise NotImplementedError('this should be overridden')
+
     def _render(self, new, old):
 
         if not new:
@@ -74,6 +97,9 @@ class Renderer(object):
                 return Status.NOTHING
             self.remove(old)
             return Status.REMOVED
+
+        if not new.dirty and new is old:
+            return Status.SAME
 
         if isinstance(new.Class, FunctionType):
             removed = False
@@ -83,9 +109,6 @@ class Renderer(object):
                 removed = True
             status = self.render_component(new, old)
             return Status.REPLACED if removed and status == Status.NEW else status
-
-        if new is old:
-            return Status.SAME
 
         if not old:
             self.update(new)
@@ -101,7 +124,12 @@ class Renderer(object):
 
     def state_changed(self, element):
         if element.parent_layout:
-            raise NotImplementedError()
+            self.update_widgets(
+                element.parent_layout,
+                element.parent_layout.props['widgets'],
+                element.parent_layout.props['widgets'],
+            )
+            return
         if element.parent_widget:
             raise NotImplementedError()
         self.render(element)
@@ -110,6 +138,7 @@ class Renderer(object):
 
         element.state = old.state if old else State(self)
         element.state.element = element
+        element.dirty = False
 
         props = element.props.copy()
         sig = signature(element.Class)
@@ -187,7 +216,7 @@ class Renderer(object):
             raise RuntimeError("shit should not happen")
 
     def remove(self, element):
-        props, layout, widgets = split_props(element.props)
+        _, layout, widgets = split_props(element.props)
 
         self._remove(element)
 
