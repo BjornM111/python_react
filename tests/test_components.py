@@ -1,24 +1,8 @@
+from types import FunctionType
+
 from react import Element
 
-
-class Label(object):
-    def __init__(self):
-        self.text = None
-
-
-class Button(object):
-    def __init__(self):
-        self.pressed = None
-
-
-class Layout(object):
-    def __init__(self):
-        self.widgets = []
-
-
-class Widget(object):
-    def __init__(self):
-        self.layout = None
+from .widgets import Label, VLayout, Button
 
 
 def simple(text=None):
@@ -39,8 +23,7 @@ def test_create(renderer):
         ("add", Label),
         ("update", {"text": "Very nice hej"}),
     ]
-    assert isinstance(renderer.item, Label)
-    assert renderer.item.text == "Very nice hej"
+    assert renderer.item == Label(text="Very nice hej")
 
 
 def test_update(renderer):
@@ -61,8 +44,7 @@ def test_update(renderer):
         ("update", {"text": "Very nice hej"}),
         ("update", {"text": "Very nice hej2"}),
     ]
-    assert isinstance(renderer.item, Label)
-    assert renderer.item.text == "Very nice hej2"
+    assert renderer.item == Label(text="Very nice hej2")
 
 
 def test_none(renderer):
@@ -91,6 +73,7 @@ def test_state_root(renderer):
         Element(component)
     )
     assert isinstance(renderer.item, Button)
+    assert renderer.item == Button()
     renderer.root.state[0][0] = True
     renderer.item.pressed()
     renderer.root.state[0][0] = False
@@ -110,14 +93,16 @@ def test_state_layout(renderer):
 
     renderer.render(
         Element(
-            Layout,
+            VLayout,
             widgets=[Element(component)],
         )
     )
-    assert isinstance(renderer.item, Layout)
-    assert isinstance(renderer.item.widgets[0], Button)
+    assert renderer.item == VLayout(
+        widgets=[Button()]
+    )
     renderer.root.props['widgets'][0].state[0][0] = True
     renderer.item.widgets[0].pressed()
     renderer.root.props['widgets'][0].state[0][0] = False
-    assert not renderer.item.widgets
-
+    assert renderer.item == VLayout(
+        widgets=[],
+    )

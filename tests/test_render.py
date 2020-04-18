@@ -1,31 +1,5 @@
 from react import Element
-
-
-class Widget(object):
-    def __init__(self):
-        self.layout = None
-
-
-class Label(object):
-    def __init__(self):
-        super().__init__()
-        self.text = None
-
-
-class Text(object):
-    def __init__(self):
-        super().__init__()
-        self.text = None
-
-
-class VLayout(object):
-    def __init__(self):
-        self.widgets = []
-
-
-class HLayout(object):
-    def __init__(self):
-        self.widgets = []
+from .widgets import Label, Text, VLayout, HLayout, Widget
 
 
 def test_create(renderer):
@@ -39,7 +13,7 @@ def test_create(renderer):
         ("add", Label),
         ("update", {"text": "hello"}),
     ]
-    assert renderer.item.text == "hello"
+    assert renderer.item == Label(text="hello")
 
 
 def test_change_prop(renderer):
@@ -49,6 +23,7 @@ def test_change_prop(renderer):
             text='hello',
         )
     )
+    assert renderer.item == Label(text="hello")
     label = renderer.item
     renderer.render(
         Element(
@@ -61,7 +36,7 @@ def test_change_prop(renderer):
         ("update", {"text": "hello"}),
         ("update", {"text": "hello2"}),
     ]
-    assert renderer.item.text == "hello2"
+    assert renderer.item == Label(text="hello2")
     assert renderer.item is label
 
 
@@ -90,6 +65,7 @@ def test_change_class(renderer):
             text='hello',
         )
     )
+    assert renderer.item == Label(text="hello")
     renderer.render(
         Element(
             Text,
@@ -103,8 +79,7 @@ def test_change_class(renderer):
         ("add", Text),
         ("update", {"text": "hello2"}),
     ]
-    assert renderer.item.text == "hello2"
-    assert isinstance(renderer.item, Text)
+    assert renderer.item == Text(text="hello2")
 
 
 def test_layout(renderer):
@@ -135,8 +110,14 @@ def test_layout(renderer):
         ("add", Label),
         ("update", {"text": "hello2"}),
     ]
-    assert renderer.item.layout.widgets[0].text == "hello"
-    assert renderer.item.layout.widgets[1].text == "hello2"
+    assert renderer.item == Widget(
+        layout=VLayout(
+            widgets=[
+                Label(text="hello"),
+                Label(text="hello2"),
+            ]
+        )
+    )
 
     widgets = renderer.item.layout.widgets[:]
 
@@ -163,9 +144,14 @@ def test_layout(renderer):
         ("update", {"text": "hello2"}),
         ("update", {"text": "hello3"}),
     ]
-    assert renderer.item.layout.widgets[0].text == "hello2"
-    assert renderer.item.layout.widgets[1].text == "hello3"
-    assert isinstance(renderer.item.layout, VLayout)
+    assert renderer.item == Widget(
+        layout=VLayout(
+            widgets=[
+                Label(text="hello2"),
+                Label(text="hello3"),
+            ]
+        )
+    )
     assert renderer.item.layout.widgets == widgets
 
     renderer.render(
@@ -186,4 +172,11 @@ def test_layout(renderer):
     assert renderer.steps[8:] == [
         ("remove", Label),
     ]
+    assert renderer.item == Widget(
+        layout=VLayout(
+            widgets=[
+                Label(text="hello3"),
+            ]
+        )
+    )
     assert renderer.item.layout.widgets == [widgets[1]]
