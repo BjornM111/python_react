@@ -1,4 +1,5 @@
 from itertools import zip_longest
+from functools import partial
 import enum
 from types import FunctionType
 from inspect import signature
@@ -31,6 +32,27 @@ class Element(object):
         self.parent_widget = None
 
 
+class State(list):
+    def __init__(self, renderer):
+        self.element = None
+        self.current_index = -1
+        self.renderer = renderer
+
+    def use_state(self, default):
+        self.current_index += 1
+        if self.current_index == len(self):
+            self.append([
+                default,
+                partial(self.set_state, self.current_index),
+            ])
+        return self[self.current_index]
+
+    def set_state(self, index, value):
+        self[index][0] = value
+        self.renderer.state_changed(self.element)
+
+
+
 class Renderer(object):
 
     def __init__(self):
@@ -40,14 +62,24 @@ class Renderer(object):
         raise NotImplementedError('this should be overridden')
 
     def _render(self, new, old):
-        if new is old:
-            return Status.SAME
 
         if not new:
             if not old:
                 return Status.NOTHING
             self.remove(old)
             return Status.REMOVED
+
+        if isinstance(new.Class, FunctionType):
+            removed = False
+            if old and old.Class != new.Class:
+                self.remove(old)
+                old = None
+                removed = True
+            status = self.render_component(new, old)
+            return Status.REPLACED if status == Status.NEW else status
+
+        if new is old:
+            return Status.SAME
 
         if not old:
             self.add(new)
@@ -61,26 +93,31 @@ class Renderer(object):
         self.update(new, old)
         return Status.UPDATED
 
-    def render_component(self, element, props, old=None):
-        if old:
-            self._move_instance(old, element)
+    def state_changed(self, element):
+        if element.parent_layout:
+            raise NotImplementedError()
+        if element.parent_widget:
+            raise NotImplementedError()
+        self.render(element)
 
-        if not props and old:
-            return
+    def render_component(self, element, old=None):
 
-        if old:
-            element.state = old.state
+        element.state = old.state if old else State(self)
+        element.state.element = element
+
+        props = element.props.copy()
+        sig = signature(element.Class)
+        if 'use_state' in sig.parameters:
+            props['use_state'] = element.state.use_state
 
         result = element.Class(**props)
-        self._render(result, old and old.result)
+        status = self._render(result, old and old.result)
         self._move_instance(result, element)
         element.result = result
+        element.state.current_index = -1
+        return status
 
     def add(self, element):
-
-        if isinstance(element.Class, FunctionType):
-            self.render_component(element, element.props)
-            return
 
         props, layout, widgets = split_props(element.props)
 
@@ -114,10 +151,6 @@ class Renderer(object):
         for key in old.props:
             if key not in new.props:
                 props[key] = None
-
-        if isinstance(new.Class, FunctionType):
-            self.render_component(new, props, old)
-            return
 
         props, layout, widgets = split_props(props)
 
