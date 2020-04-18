@@ -13,7 +13,7 @@ class Button(object):
 
 class Layout(object):
     def __init__(self):
-        self.widgets = None
+        self.widgets = []
 
 
 class Widget(object):
@@ -97,7 +97,7 @@ def test_state_root(renderer):
     assert renderer.item is None
 
 
-def stest_state_layout(renderer):
+def test_state_layout(renderer):
 
     def component(use_state):
         visible, set_visible = use_state(True)
@@ -114,9 +114,10 @@ def stest_state_layout(renderer):
             widgets=[Element(component)],
         )
     )
-    assert isinstance(renderer.item, Button)
-    renderer.root.widgets[0].state[0][0] = True
-    renderer.item.pressed()
-    renderer.root.widgets[0].state[0][0] = False
-    assert renderer.item is None
+    assert isinstance(renderer.item, Layout)
+    assert isinstance(renderer.item.widgets[0], Button)
+    renderer.root.props['widgets'][0].state[0][0] = True
+    renderer.item.widgets[0].pressed()
+    renderer.root.props['widgets'][0].state[0][0] = False
+    assert renderer.item.widgets[0] is None
 

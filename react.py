@@ -31,6 +31,12 @@ class Element(object):
         self.parent_layout = None
         self.parent_widget = None
 
+    def __repr__(self):
+        return "Element({}, {})".format(
+            self.Class.__name__,
+            self.props,
+        )
+
 
 class State(list):
     def __init__(self, renderer):
@@ -76,18 +82,18 @@ class Renderer(object):
                 old = None
                 removed = True
             status = self.render_component(new, old)
-            return Status.REPLACED if status == Status.NEW else status
+            return Status.REPLACED if removed and status == Status.NEW else status
 
         if new is old:
             return Status.SAME
 
         if not old:
-            self.add(new)
+            self.update(new)
             return Status.NEW
 
         if new.Class != old.Class:
             self.remove(old)
-            self.add(new)
+            self.update(new)
             return Status.REPLACED
 
         self.update(new, old)
@@ -117,54 +123,40 @@ class Renderer(object):
         element.state.current_index = -1
         return status
 
-    def add(self, element):
+    def update(self, new, old=None):
 
-        props, layout, widgets = split_props(element.props)
+        if old:
+            props = {}
 
-        self._create_instance(element)
-        if props:
-            self._setprops(element, props)
+            for key, value in new.props.items():
+                if old.props.get(key) != value:
+                    props[key] = value
 
-        if layout:
-            self.add(layout)
-            layout.parent_widget = element
-            self._setlayout(element, layout)
+            for key in old.props:
+                if key not in new.props:
+                    props[key] = None
 
-        if widgets:
-            i = 0
-            for widget in widgets:
-                if not widget:
-                    continue
-                self.add(widget)
-                element.parent_layout = widget
-                self._insert(element, i, widget)
-                i += 1
-
-    def update(self, new, old):
-
-        props = {}
-
-        for key, value in new.props.items():
-            if old.props.get(key) != value:
-                props[key] = value
-
-        for key in old.props:
-            if key not in new.props:
-                props[key] = None
+            self._move_instance(old, new)
+        else:
+            self._create_instance(new)
+            props = new.props
 
         props, layout, widgets = split_props(props)
 
-        self._move_instance(old, new)
         if props:
             self._setprops(new, props, old)
 
         if layout:
-            self._render(layout, old.props.get('layout'))
+            self._render(layout, old and old.props.get('layout'))
             layout.parent_widget = new
             self._setlayout(new, layout)
 
         if widgets:
-            self.update_widgets(new, widgets, old.props['widgets'])
+            self.update_widgets(
+                new,
+                widgets,
+                old.props['widgets'] if old else [],
+            )
 
     def update_widgets(self, element, new, old):
         i = 0
