@@ -1,6 +1,7 @@
 from itertools import zip_longest
 import enum
 from types import FunctionType
+from inspect import signature
 
 
 class Status(enum.Enum):
@@ -24,6 +25,10 @@ class Element(object):
         self.Class = Class
         self.props = props or {}
         self.result = None
+        self.state = []
+        self.state_index = -1
+        self.parent_layout = None
+        self.parent_widget = None
 
 
 class Renderer(object):
@@ -56,13 +61,25 @@ class Renderer(object):
         self.update(new, old)
         return Status.UPDATED
 
+    def render_component(self, element, props, old=None):
+        if old:
+            self._move_instance(old, element)
+
+        if not props and old:
+            return
+
+        if old:
+            element.state = old.state
+
+        result = element.Class(**props)
+        self._render(result, old and old.result)
+        self._move_instance(result, element)
+        element.result = result
+
     def add(self, element):
 
         if isinstance(element.Class, FunctionType):
-            result = element.Class(**element.props)
-            self._render(result, None)
-            self._move_instance(result, element)
-            element.result = result
+            self.render_component(element, element.props)
             return
 
         props, layout, widgets = split_props(element.props)
@@ -73,7 +90,7 @@ class Renderer(object):
 
         if layout:
             self.add(layout)
-            layout.parentWidget = element
+            layout.parent_widget = element
             self._setlayout(element, layout)
 
         if widgets:
@@ -82,7 +99,7 @@ class Renderer(object):
                 if not widget:
                     continue
                 self.add(widget)
-                element.parentLayout = widget
+                element.parent_layout = widget
                 self._insert(element, i, widget)
                 i += 1
 
@@ -99,13 +116,7 @@ class Renderer(object):
                 props[key] = None
 
         if isinstance(new.Class, FunctionType):
-            if not props:
-                return
-            result = new.Class(**new.props)
-            self._move_instance(old, new)
-            self._render(result, old.result)
-            self._move_instance(result, new)
-            new.result = result
+            self.render_component(new, props, old)
             return
 
         props, layout, widgets = split_props(props)
@@ -116,7 +127,7 @@ class Renderer(object):
 
         if layout:
             self._render(layout, old.props.get('layout'))
-            layout.parentWidget = new
+            layout.parent_widget = new
             self._setlayout(new, layout)
 
         if widgets:
@@ -130,13 +141,13 @@ class Renderer(object):
                 continue
             if status == Status.NEW:
                 self._insert(element, i, new_widget)
-                new_widget.parentLayout = element
+                new_widget.parent_layout = element
                 i += 1
                 continue
             if status == Status.REPLACED:
                 self._pop(new, i)
                 self._insert(element, i, new_widget)
-                new_widget.parentLayout = element
+                new_widget.parent_layout = element
                 i += 1
                 continue
             if status == Status.REMOVED:

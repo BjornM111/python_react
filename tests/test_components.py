@@ -13,10 +13,6 @@ def simple(text=None):
     )
 
 
-def none():
-    return None
-
-
 def test_create(renderer):
     renderer.render(
         Element(
@@ -55,7 +51,35 @@ def test_update(renderer):
 
 
 def test_none(renderer):
+    def none():
+        return None
+
     renderer.render(
         Element(none)
     )
     assert renderer.steps == []
+    assert renderer.item is None
+
+
+def test_state(renderer):
+    class Button(object):
+        def __init__(self):
+            self.pressed = None
+
+    def component(use_state):
+        visible, set_visible = use_state(True)
+        if not visible:
+            return None
+        return Element(
+            Button,
+            pressed=lambda: set_visible(False),
+        )
+
+    renderer.render(
+        Element(component)
+    )
+    assert isinstance(renderer.item, Button)
+    renderer.root.state[0][0] = True
+    renderer.item.pressed()
+    renderer.root.state[0][0] = False
+    assert renderer.item is None
