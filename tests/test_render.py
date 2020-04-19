@@ -180,3 +180,57 @@ def test_layout(renderer):
         )
     )
     assert renderer.item.layout.widgets == [widgets[1]]
+
+
+def test_widgets_list(renderer):
+    renderer.render(
+        Element(
+            VLayout,
+            widgets=[
+                [Element(Label, key="a")],
+                [
+                    Element(Label, key="a"),
+                    Element(Label, key="b"),
+                ]
+            ]
+        )
+    )
+    assert renderer.steps == [
+        ("add", VLayout),
+        ("add", Label),
+        ("add", Label),
+        ("add", Label),
+    ]
+    assert renderer.item == VLayout(
+        widgets=[
+            Label(),
+            Label(),
+            Label(),
+        ]
+    )
+    label_a = renderer.item.widgets[1]
+    label_b = renderer.item.widgets[2]
+    renderer.render(
+        Element(
+            VLayout,
+            widgets=[
+                [],
+                [
+                    Element(Label, key="b"),
+                    Element(Label, key="a", text="majs"),
+                ]
+            ]
+        )
+    )
+    assert renderer.steps[4:] == [
+        ("remove", Label),
+        ("update", {"text": "majs"}),
+    ]
+    assert renderer.item == VLayout(
+        widgets=[
+            Label(),
+            Label(text="majs"),
+        ]
+    )
+    assert renderer.item.widgets[0] is label_b
+    assert renderer.item.widgets[1] is label_a

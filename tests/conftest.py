@@ -33,6 +33,12 @@ class TestRenderer(Renderer):
     def _insert(self, parent, i, element):
         parent.item.widgets.insert(i, element.item)
 
+    def _clear(self, element):
+        element.item.widgets.clear()
+
+    def _add(self, parent, element):
+        parent.item.widgets.append(element.item)
+
     def _setprops(self, element, props, old_element=None):
         self.steps.append(
             ("update", props),

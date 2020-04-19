@@ -37,6 +37,20 @@ class QtRenderer(Renderer):
                 "type for {} is not supported yet".format(element.item)
             )
 
+    def _clear(self, element):
+        while element.item.takeAt(0):
+            pass
+
+    def _add(self, parent, element):
+        if isinstance(element.item, QWidget):
+            parent.item.addWidget(element.item)
+        elif isinstance(element.item, QLayout):
+            parent.item.addLayout(element.item)
+        else:
+            raise NotImplementedError(
+                "type for {} is not supported yet".format(element.item)
+            )
+
     def _setprops(self, element, props, old=None):
         meta = element.item.metaObject()
         for key, value in props.items():

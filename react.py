@@ -22,8 +22,9 @@ def split_props(props):
 
 
 class Element(object):
-    def __init__(self, Class, **props):
+    def __init__(self, Class, key=None, **props):
         self.Class = Class
+        self.key = key
         self.props = props or {}
         self.result = None
         self.state = []
@@ -33,8 +34,9 @@ class Element(object):
         self.dirty = False
 
     def __repr__(self):
-        return "Element({}, {})".format(
+        return "Element({}{}, {})".format(
             self.Class.__name__,
+            ", key="+str(self.key) if self.key is not None else "",
             self.props,
         )
 
@@ -197,13 +199,29 @@ class Renderer(object):
             return element.result
         return element
 
-    def update_widgets(self, element, new, old):
-        i = 0
+    def update_widgets(self, element, new, old, skip_clear=None):
+        if not skip_clear:
+            self._clear(element)
+
         for new_widget, old_widget in zip_longest(new, old):
 
-            old_widget_ = self.get_element(old_widget)
-            if old_widget_:
-                self._pop(element, i)
+            if isinstance(new_widget, list):
+                if isinstance(old_widget, list):
+                    key_map = {widget.key: widget for widget in old_widget}
+                    old_widget = [key_map.pop(widget.key, None) for widget in new_widget]
+                    for widget in key_map.values():
+                        self.remove(widget)
+                else:
+                    if old_widget:
+                        self.remove(old_widget)
+                    old_widget = []
+
+                self.update_widgets(element, new_widget, old_widget, True)
+                continue
+
+            if isinstance(old_widget, list):
+                for widget in old_widget:
+                    self.remove(widget)
 
             self._render(new_widget, old_widget)
 
@@ -212,8 +230,7 @@ class Renderer(object):
 
                 new_widget_ = self.get_element(new_widget)
                 if new_widget_:
-                    self._insert(element, i, new_widget_)
-                    i += 1
+                    self._add(element, new_widget_)
 
     def remove(self, element):
         _, layout, widgets = split_props(element.props)
