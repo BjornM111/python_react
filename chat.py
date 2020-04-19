@@ -25,6 +25,7 @@ def master(use_state):
     message, set_message = use_state("")
 
     return QDialog(
+        windowTitle=message,
         layout=QVBoxLayout(
             widgets=[
                 QTextEdit(
