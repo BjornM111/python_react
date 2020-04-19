@@ -147,7 +147,6 @@ class Renderer(object):
 
         result = element.Class(**props)
         status = self._render(result, old and old.result)
-        self._move_instance(result, element)
         element.result = result
         element.state.current_index = -1
         return status
@@ -187,33 +186,34 @@ class Renderer(object):
                 old.props['widgets'] if old else [],
             )
 
+    def get_element(self, element):
+        """
+        Helper function for getting the actual element
+        if element is a component-element the result is returned
+        """
+        if not element:
+            return None
+        if isinstance(element.Class, FunctionType):
+            return element.result
+        return element
+
     def update_widgets(self, element, new, old):
         i = 0
         for new_widget, old_widget in zip_longest(new, old):
-            status = self._render(new_widget, old_widget)
-            if status == Status.NOTHING:
-                continue
-            if status == Status.NEW:
-                self._insert(element, i, new_widget)
-                new_widget.parent_layout = element
-                i += 1
-                continue
-            if status == Status.REPLACED:
-                self._pop(new, i)
-                self._insert(element, i, new_widget)
-                new_widget.parent_layout = element
-                i += 1
-                continue
-            if status == Status.REMOVED:
+
+            old_widget_ = self.get_element(old_widget)
+            if old_widget_:
                 self._pop(element, i)
-                continue
-            if status == Status.UPDATED:
-                i += 1
-                continue
-            if status == Status.SAME:
-                i += 1
-                continue
-            raise RuntimeError("shit should not happen")
+
+            self._render(new_widget, old_widget)
+
+            if new_widget:
+                new_widget.parent_layout = element
+
+                new_widget_ = self.get_element(new_widget)
+                if new_widget_:
+                    self._insert(element, i, new_widget_)
+                    i += 1
 
     def remove(self, element):
         _, layout, widgets = split_props(element.props)

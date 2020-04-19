@@ -14,7 +14,8 @@ class TestRenderer(Renderer):
             self.root,
         )
         self.root = root
-        self.item = root and root.item
+        root_ = self.get_element(root)
+        self.item = root_ and root_.item
 
     def _create_instance(self, element):
         element.item = element.Class()

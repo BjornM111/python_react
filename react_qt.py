@@ -14,8 +14,9 @@ class QtRenderer(Renderer):
             self.root,
         )
         self.root = root
-        if root.item:
-            root.item.show()
+        root_ = self.get_element(root)
+        if root_.item:
+            root_.item.show()
 
     def _create_instance(self, element):
         element.item = element.Class()
