@@ -100,9 +100,9 @@ def test_state_layout(renderer):
     assert renderer.item == VLayout(
         widgets=[Button()]
     )
-    renderer.root.props['widgets'][0].state[0][0] = True
+    assert renderer.root.props['widgets'][0].state[0][0] == True
     renderer.item.widgets[0].pressed()
-    renderer.root.props['widgets'][0].state[0][0] = False
+    assert renderer.root.props['widgets'][0].state[0][0] == False
     assert renderer.item == VLayout(
         widgets=[],
     )
