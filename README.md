@@ -13,3 +13,7 @@ The hacking example is a simple application that tests many features at the same
 ```sh
 python hacking.py
 ```
+### chat.py
+```sh
+python chat.py
+```
