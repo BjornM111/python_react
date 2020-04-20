@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore
 
 from wrapper import wrap
 from react import Element
@@ -56,6 +56,12 @@ def master(use_state):
                     for i, todo in enumerate(todos)
                     if (filter_ == 0) or (filter_ == 1 and not todo.done) or (filter_ == 2 and todo.done)
                 ],
+                QWidget(
+                    sizePolicy=QtWidgets.QSizePolicy(
+                        QtWidgets.QSizePolicy.Expanding,
+                        QtWidgets.QSizePolicy.Preferred,
+                    )
+                ),
                 QHBoxLayout(
                     widgets=[
                         QLineEdit(
