@@ -53,6 +53,7 @@ class QtRenderer(Renderer):
 
     def _setprops(self, element, props, old=None):
         meta = element.item.metaObject()
+        element.item.blockSignals(True)
         for key, value in props.items():
             # we need to take care of text cursors as they are normally cleared
             # when the text us updated
@@ -73,6 +74,7 @@ class QtRenderer(Renderer):
             if old and old.props.get(key):
                 signal.disconnect(old.props[key])
             signal.connect(value)
+        element.item.blockSignals(False)
 
     def _setlayout(self, element, layout):
         element.item.setLayout(layout.item)
