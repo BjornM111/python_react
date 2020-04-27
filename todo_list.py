@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from PySide2 import QtWidgets
 from PySide2.QtWidgets import QApplication, QSizePolicy
+import requests
 
 from wrapper import wrap
 from react import Element
@@ -30,10 +31,18 @@ class Todo:
     done: bool = False
 
 
-def master(use_state):
+def fetch_todos(set_todos, i):
+    result = requests.get('https://jsonplaceholder.typicode.com/todos')
+    set_todos([Todo(todo['title'], todo['completed']) for todo in result.json()[i:i+7]])
+
+
+def master(use_state, use_effect):
     todos, set_todos = use_state([])
     description, set_description = use_state("")
     filter_, set_filter = use_state(0)
+    reload_index, set_reload_index = use_state(0)
+
+    use_effect(fetch_todos, set_todos, reload_index)
 
     return QDialog(
         windowTitle="Todos: {} / {}".format(
@@ -44,7 +53,13 @@ def master(use_state):
             widgets=[
                 [
                     QHBoxLayout(key=i, widgets=[
-                        QLabel(text=todo.description),
+                        QLabel(
+                            text=todo.description,
+                            sizePolicy=QSizePolicy(
+                                QSizePolicy.Expanding,
+                                QSizePolicy.Preferred,
+                            ),
+                        ),
                         QCheckBox(
                             checked=todo.done,
                             stateChanged=lambda checked, i=i, todo=todo: set_todos([
@@ -99,6 +114,9 @@ def master(use_state):
                         toggled=lambda x: set_filter(2),
                         autoExclusive=False,
                     ),
+                    QPushButton(
+                        pressed=lambda: set_reload_index(reload_index+1),
+                    )
                 ]
                 ),
             ]

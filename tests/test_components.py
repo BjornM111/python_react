@@ -106,3 +106,37 @@ def test_state_layout(renderer):
     assert renderer.item == VLayout(
         widgets=[],
     )
+
+
+def test_effect(renderer):
+    vars = []
+    vars2 = []
+    def add_var(var):
+        vars.append(var)
+        def cleanup():
+            vars2.append(var)
+        return cleanup
+
+    iter_vars = []
+    iter_vars2 = []
+    def add_var_iterator(var):
+        iter_vars.append(var)
+        yield
+        iter_vars2.append(var)
+
+    list_of_things = []
+    def component(use_effect, use_state, var):
+        use_effect(add_var, int(var))
+        use_effect(add_var_iterator, int(var))
+
+        return None
+
+    renderer.render(Element(component, var=1.0))
+    renderer.render(Element(component, var=1.2))
+    renderer.render(Element(component, var=2.0))
+    renderer.render(Element(component, var=1.0))
+    assert vars == [1, 2, 1]
+    assert vars2 == [1, 2]
+
+    assert iter_vars == [1, 2, 1]
+    assert iter_vars2 == [1, 2]

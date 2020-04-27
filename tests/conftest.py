@@ -54,6 +54,9 @@ class TestRenderer(Renderer):
             ("remove", element.Class),
         )
 
+    def _add_task(self, func):
+        func()
+
 
 @pytest.fixture
 def renderer():

@@ -1,4 +1,4 @@
-from PySide2.QtCore import SignalInstance
+from PySide2.QtCore import SignalInstance, QTimer
 from PySide2.QtWidgets import QWidget, QLayout, QLineEdit, QTextEdit
 
 from react import Renderer
@@ -7,6 +7,7 @@ from react import Renderer
 class QtRenderer(Renderer):
     def __init__(self, *args, **kwargs):
         super(QtRenderer, self).__init__(*args, **kwargs)
+        self.schedule = []
 
     def render(self, root):
         self._render(
@@ -81,6 +82,14 @@ class QtRenderer(Renderer):
 
     def _remove(self, element):
         element.item.deleteLater()
+
+    def _add_task(self, func):
+        self.schedule.append(func)
+        QTimer.singleShot(0, self._run_schedule)
+
+    def _run_schedule(self):
+        for func in self.schedule:
+            func()
 
 
 def style(**kwargs):

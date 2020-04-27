@@ -62,6 +62,40 @@ class State(list):
         self.renderer.state_changed(self.element)
 
 
+class Effects(list):
+    def __init__(self):
+        self.current_index = -1
+        self.schedule = []
+
+    def run_schedule(self):
+        for index, func in self.schedule:
+            self[index][0] = result = func()
+            try:
+                next(result)
+            except (TypeError, StopIteration):
+                pass
+        self.schedule = []
+
+    def use_effect(self, func, *args):
+        self.current_index += 1
+        if self.current_index == len(self):
+            self.append([None])
+        cleanup, *prev_args = self[self.current_index]
+        if args != tuple(prev_args):
+            if cleanup:
+                try:
+                    next(cleanup)
+                except TypeError:
+                    cleanup()
+                except StopIteration:
+                    pass
+
+            self.schedule.append([
+                self.current_index,
+                partial(func, *args),
+            ])
+            self[self.current_index] = [None, *args]
+
 
 class Renderer(object):
 
@@ -90,6 +124,9 @@ class Renderer(object):
         raise NotImplementedError('this should be overridden')
 
     def _remove(self, element):
+        raise NotImplementedError('this should be overridden')
+
+    def _add_task(self, func):
         raise NotImplementedError('this should be overridden')
 
     def _render(self, new, old):
@@ -142,15 +179,23 @@ class Renderer(object):
         element.state.element = element
         element.dirty = False
 
+        element.effects = old.effects if old else Effects()
+
         props = element.props.copy()
         sig = signature(element.Class)
         if 'use_state' in sig.parameters:
             props['use_state'] = element.state.use_state
+        if 'use_effect' in sig.parameters:
+            props['use_effect'] = element.effects.use_effect
 
         result = element.Class(**props)
         status = self._render(result, old and old.result)
         element.result = result
         element.state.current_index = -1
+        element.effects.current_index = -1
+        if element.effects.schedule:
+            self._add_task(element.effects.run_schedule)
+
         return status
 
     def update(self, new, old=None):
